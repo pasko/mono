@@ -737,6 +737,12 @@ void nacl_shutdown_gc_thread()
     GC_ASSERT(nacl_thread_idx >= 0 && nacl_thread_idx < MAX_NACL_GC_THREADS);
     GC_ASSERT(nacl_thread_used[nacl_thread_idx] != 0);
     nacl_thread_used[nacl_thread_idx] = 0;
+
+    /* Added by Egor.  */
+    printf("GGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCC "
+           "Thread shutdown for nacl_thread_idx=%d, idx_ptr=0x%lx\n",
+           nacl_thread_idx, &nacl_thread_idx);
+
     nacl_thread_idx = -1;
     nacl_num_gc_threads--;
     pthread_mutex_unlock(&nacl_thread_alloc_lock);
@@ -818,6 +824,11 @@ void GC_delete_gc_thread(pthread_t id, GC_thread gc_id)
     int hv = ((word)id) % THREAD_TABLE_SZ;
     register GC_thread p = GC_threads[hv];
     register GC_thread prev = 0;
+
+    /* Added by Egor.  */
+    printf("GGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCC "
+           "Shutdown joined thread with nacl_thread_idx=%d, idx_ptr=0x%x\n",
+           nacl_thread_idx, &nacl_thread_idx);
 
     while (p != gc_id) {
         prev = p;
@@ -1395,6 +1406,12 @@ void * GC_start_routine_head(void * arg, void *base_addr,
     LOCK();
     GC_in_thread_creation = TRUE;
     me = GC_new_thread(my_pthread);
+
+    /* Added by Egor.  */
+    printf("GGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCC "
+           "Starting thread 0x%x, sp=0x%x, nacl_thread_idx=%d, idx_ptr=0x%x\n",
+           my_pthread, &arg, nacl_thread_idx, &nacl_thread_idx);
+
     GC_in_thread_creation = FALSE;
 #ifdef GC_DARWIN_THREADS
     me -> stop_info.mach_thread = mach_thread_self();
