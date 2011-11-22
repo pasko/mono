@@ -131,6 +131,10 @@ mono_disassemble_code (MonoCompile *cfg, guint8 *code, int size, char *id)
 	char *cmd;
 	int unused;
 
+#if defined(__native_client_codegen__) || defined(__native_client__)
+        return;
+#endif
+
 #ifdef HOST_WIN32
 	as_file = g_strdup_printf ("%s/test.s", tmp);    
 
@@ -257,4 +261,3 @@ mono_disassemble_code (MonoCompile *cfg, guint8 *code, int size, char *id)
 	g_free (as_file);
 #endif
 }
-
