@@ -386,6 +386,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	guint8 *buf, *code, *tramp, *br [2], *r11_save_code, *after_r11_save_code;
 	int i, lmf_offset, offset, res_offset, arg_offset, rax_offset, tramp_offset, saved_regs_offset;
 	int saved_fpregs_offset, rbp_offset, framesize, orig_rsp_to_rbp_offset, cfa_offset;
+        guint8* code_start;
 	gboolean has_caller;
 	GSList *unwind_ops = NULL;
 	MonoJumpInfo *ji = NULL;
@@ -400,7 +401,8 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	else
 		has_caller = TRUE;
 
-	code = buf = mono_global_codeman_reserve (kMaxCodeSize);
+	code_start = code = buf = mono_global_codeman_reserve (kMaxCodeSize);
+        printf ("trampoline: trampoline generation start\n");
 
 	framesize = kMaxCodeSize + sizeof (MonoLMF);
 	framesize = (framesize + (MONO_ARCH_FRAME_ALIGNMENT - 1)) & ~ (MONO_ARCH_FRAME_ALIGNMENT - 1);
@@ -423,6 +425,8 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 
 	cfa_offset -= sizeof(mgreg_t);
 	mono_add_unwind_op_def_cfa_offset (unwind_ops, code, buf, cfa_offset);
+
+        printf ("trampoline: allocate a new stack frame: 0x%x\n", code - code_start);
 
 	/* 
 	 * Allocate a new stack frame
@@ -449,6 +453,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	offset += sizeof(gpointer);
 	arg_offset = - offset;
 
+        printf ("trampoline: compute the trampoline address from return address: 0x%x\n", code - code_start);
 	/* Compute the trampoline address from the return address */
 	if (aot) {
 #if defined(__default_codegen__)
@@ -468,6 +473,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 
 	/* Save all registers */
 
+        printf ("trampoline: save all registers: 0x%x\n", code - code_start);
 	offset += AMD64_NREG * sizeof(mgreg_t);
 	saved_regs_offset = - offset;
 	for (i = 0; i < AMD64_NREG; ++i) {
@@ -487,6 +493,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	}
 	offset += 8 * sizeof(mgreg_t);
 	saved_fpregs_offset = - offset;
+        printf ("trampoline: save fpregs: 0x%x\n", code - code_start);
 	for (i = 0; i < 8; ++i)
 		amd64_movsd_membase_reg (code, AMD64_RBP, saved_fpregs_offset + (i * sizeof(mgreg_t)), i);
 
@@ -509,6 +516,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 			/* Load the value */
 			amd64_mov_reg_membase (code, AMD64_R11, AMD64_R11, 0, sizeof(gpointer));
 		} else {			
+                        printf ("trampoline: obtain the trampoline argument: 0x%x\n", code - code_start);
 			amd64_mov_reg_membase (code, AMD64_R11, AMD64_RBP, tramp_offset, sizeof(gpointer));
 #if defined(__default_codegen__)
 			amd64_mov_reg_membase (code, AMD64_RAX, AMD64_R11, 5, 1);
@@ -537,6 +545,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 
 	/* Save LMF begin */
 
+        printf ("trampoline: save LMF: 0x%x\n", code - code_start);
 	offset += sizeof (MonoLMF);
 	lmf_offset = - offset;
 
@@ -571,6 +580,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	amd64_mov_membase_reg (code, AMD64_RBP, lmf_offset + G_STRUCT_OFFSET (MonoLMF, r14), AMD64_R14, sizeof(mgreg_t));
 	amd64_mov_membase_reg (code, AMD64_RBP, lmf_offset + G_STRUCT_OFFSET (MonoLMF, r15), AMD64_R15, sizeof(mgreg_t));
 
+        printf ("trampoline: call mono_get_lmf_addr: 0x%x\n", code - code_start);
 	if (aot) {
 		code = mono_arch_emit_load_aotconst (buf, code, &ji, MONO_PATCH_INFO_JIT_ICALL_ADDR, "mono_get_lmf_addr");
 	} else {
@@ -595,6 +605,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	amd64_lea_membase (code, AMD64_ARG_REG1, AMD64_RBP, saved_regs_offset);
 
 	/* Arg2 is the address of the calling code */
+        printf ("trampoline: Arg2 is the address of the calling code: 0x%x\n", code - code_start);
 	if (has_caller)
 		amd64_mov_reg_membase (code, AMD64_ARG_REG2, AMD64_RBP, 8, sizeof(gpointer));
 	else
@@ -632,6 +643,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 
 	/* Restore LMF */
 
+        printf ("trampoline: Restore LMF: 0x%x\n", code - code_start);
 	amd64_mov_reg_membase (code, AMD64_RCX, AMD64_RBP, lmf_offset + G_STRUCT_OFFSET (MonoLMF, previous_lmf), sizeof(gpointer));
 	amd64_alu_reg_imm_size (code, X86_SUB, AMD64_RCX, 1, sizeof(gpointer));
 	amd64_mov_reg_membase (code, AMD64_R11, AMD64_RBP, lmf_offset + G_STRUCT_OFFSET (MonoLMF, lmf_addr), sizeof(gpointer));
@@ -641,6 +653,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 	 * Save rax to the stack, after the leave instruction, this will become part of
 	 * the red zone.
 	 */
+        printf ("trampoline: Save rax to the stack: 0x%x\n", code - code_start);
 	amd64_mov_membase_reg (code, AMD64_RBP, rax_offset, AMD64_RAX, sizeof(mgreg_t));
 
 	/* Restore argument registers, r10 (imt method/rgxtx)
@@ -653,6 +666,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 		amd64_movsd_reg_membase (code, i, AMD64_RBP, saved_fpregs_offset + (i * sizeof(mgreg_t)));
 
 	/* Restore stack */
+        printf ("trampoline: Restore stack: 0x%x\n", code - code_start);
 	amd64_leave (code);
 
 	if (MONO_TRAMPOLINE_TYPE_MUST_RETURN (tramp_type)) {
@@ -661,6 +675,7 @@ mono_arch_create_generic_trampoline (MonoTrampolineType tramp_type, MonoTrampInf
 		amd64_ret (code);
 	} else {
 		/* call the compiled method using the saved rax */
+                printf ("trampoline: call the compiled method using the saved rax: 0x%x\n", code - code_start);
 		amd64_jump_membase (code, AMD64_RSP, rax_offset - sizeof(mgreg_t));
 	}
 

@@ -4888,6 +4888,29 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, gbool
 		mono_disassemble_code (cfg, cfg->native_code, cfg->code_len, id + 3);
 		g_free (id);
 	}
+    {
+		char *id = mono_method_full_name (cfg->method, TRUE);
+        printf ("mono_jit_code:: 0x%x 0x%x %s\n",
+                cfg->native_code,
+                cfg->native_code + cfg->code_len,
+                id);
+        /*
+        if (0x074d0860 == (int)cfg->native_code) {
+            printf ("Code in bounds: %d:System.NumberFormatter:IntegerToString\n", 0x074d0860);
+            fflush(NULL);
+        }
+        if (0x054d6e00 == (int)cfg->native_code) {
+            struct timespec req, rem;
+            printf ("Code in bounds: %x:System.Globalization.NumberFormatInfo:GetInstance\n", cfg->native_code);
+            req.tv_sec = 15;
+            req.tv_nsec = 0;
+            printf("Sleeping 15 sec.\n");
+            fflush(NULL);
+            nanosleep(&req, &rem);
+        }
+        */
+		g_free (id);
+    }
 
 	if (!cfg->compile_aot) {
 		mono_domain_lock (cfg->domain);
@@ -5764,6 +5787,13 @@ mono_jit_runtime_invoke (MonoMethod *method, void *obj, void **params, MonoObjec
 	}
 #endif
 
+    /*
+    if ((int)((MonoObject*)obj)->vtable == 0) {
+      printf ("Object vtable == 0, sad.\n");
+      fflush (NULL);
+      abort ();
+    }
+    */
 	return runtime_invoke (obj, params, exc, info->compiled_method);
 }
 

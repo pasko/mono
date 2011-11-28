@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <glib.h>
+#include <time.h>
 
 /* For dlmalloc.h */
 #define USE_DL_PREFIX 1
@@ -595,6 +596,7 @@ mono_code_manager_commit (MonoCodeManager *cman, void *data, int size, int newsi
 #else
 	unsigned char *code;
 	int status;
+        struct timespec req, rem;
 	g_assert (newsize <= size);
 	code = mono_g_hash_table_lookup (cman->hash, data);
 	g_assert (code != NULL);
@@ -604,10 +606,27 @@ mono_code_manager_commit (MonoCodeManager *cman, void *data, int size, int newsi
 		*((char *)data + newsize) = 0xf4;
 		newsize++;
 	}
+        printf ("mono_code_manager_commit: 0x%x 0x%x\n",
+                (int)code, (int) (code + newsize));
+        fflush(NULL);
+          /*
+        if ((int)code == 0x074cdba0) {
+          req.tv_sec = 2;
+          req.tv_nsec = 0;
+          printf ("mono_code_manager_commit: Sleeping 2 sec.\n");
+          fflush (NULL);
+          nanosleep(&req, &rem);
+        }
+          */
 	status = nacl_dyncode_create (code, data, newsize);
 	if (status != 0) {
 		g_assert_not_reached ();
 	}
+        if (strncmp(code,data,newsize)) {
+          printf ("wtf wtf code is not created after nacl_dyncode_create()\n");
+          fflush (NULL);
+          // g_assert_not_reached ();
+        }
 	mono_g_hash_table_remove (cman->hash, data);
 	g_assert (data == patch_source_base[patch_current_depth]);
 	g_assert (code == patch_dest_base[patch_current_depth]);
@@ -654,4 +673,3 @@ mono_code_manager_size (MonoCodeManager *cman, int *used_size)
 		*used_size = used;
 	return size;
 }
-

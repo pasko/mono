@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Collections;
 using System.Text;
 using System.Threading;
+using System.Globalization;
 
 namespace Test {
 
@@ -17,14 +18,21 @@ namespace Test {
 
 	public class HelloWorld
 	{
+		public static Int32 i32 = new Int32();
+
 		static public void Main ()
 		{
 		}
 
 		static public void Foobar (int x, string s)
 		{
+			double result;
+
+			result = Convert.ToDouble(i32);
+
 			// first line is a simple test
 			// 1. call back into c code 2. use mscorlib Math.Sqrt()
+			c_code.my_c_func(x, s, result);
 			c_code.my_c_func(x, s, Math.Sqrt(3.1415 * 3.1415));
 
 			// second part of this test:

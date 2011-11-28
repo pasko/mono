@@ -6395,6 +6395,7 @@ mono_type_get_object (MonoDomain *domain, MonoType *type)
 {
 	MonoType *norm_type;
 	MonoReflectionType *res;
+        printf("-->in mono_type_get_object\n");
 	MonoClass *klass = mono_class_from_mono_type (type);
 
 	/*we must avoid using @type as it might have come
@@ -8875,6 +8876,21 @@ mono_reflection_get_custom_attrs_by_type (MonoObject *obj, MonoClass *attr_klass
 {
 	MonoArray *result;
 	MonoCustomAttrInfo *cinfo;
+
+    /*
+    static int invoked = 0;
+	struct timespec req, rem;
+
+    if (!invoked) {
+        invoked = 1;
+        req.tv_sec = 18;
+        req.tv_nsec = 0;
+        printf("Sleeping 18 sec.\n");
+        fflush(NULL);
+        nanosleep(&req, &rem);
+        printf("exit sleep\n");
+    }
+    */
 
 	mono_error_init (error);
 

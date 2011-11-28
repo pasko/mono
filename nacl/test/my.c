@@ -159,5 +159,6 @@ int main() {
   printf("==========================\n");
   try_mono();
   printf("==========================\n\n");
+  printf("Egor changed this output.\n");
   return 0;
 }

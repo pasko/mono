@@ -13,6 +13,7 @@
 #include <glib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include <mono/metadata/gc-internal.h>
 
@@ -2328,7 +2329,18 @@ mono_get_uint16_class (void)
 MonoClass*
 mono_get_int32_class (void)
 {
-	return mono_defaults.int32_class;
+	struct timespec req, rem;
+	printf("in mono_get_int32_class\n");
+	MonoClass* ret = mono_defaults.int32_class;
+	/*
+	req.tv_sec = 20;
+	req.tv_nsec = 0;
+	printf("Sleeping 20 sec.\n");
+	fflush(NULL);
+	nanosleep(&req, &rem);
+	*/
+	printf("exit mono_get_int32_class\n");
+	return ret;
 }
 
 MonoClass*
@@ -2656,4 +2668,3 @@ mono_framework_version (void)
 {
 	return current_runtime->framework_version [0] - '0';
 }
-

@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
 #include <mono/metadata/mono-endian.h>
 #include <mono/metadata/tabledefs.h>
 #include <mono/metadata/tokentype.h>
@@ -3081,6 +3082,22 @@ mono_field_get_value_object (MonoDomain *domain, MonoClassField *field, MonoObje
 	gboolean is_literal = FALSE;
 	gboolean is_ptr = FALSE;
 	MonoError error;
+
+    static int invoked = 0;
+	struct timespec req, rem;
+
+    printf("in mono_field_get_value_object, obj=%d\n", obj);
+    if (!invoked) {
+        invoked = 1;
+        /*
+        req.tv_sec = 19;
+        req.tv_nsec = 0;
+        printf("Sleeping 19 sec.\n");
+        fflush(NULL);
+        nanosleep(&req, &rem);
+        printf("exit sleep\n");
+        */
+    }
 	MonoType *type = mono_field_get_type_checked (field, &error);
 
 	if (!mono_error_ok (&error))
@@ -4308,6 +4325,15 @@ mono_object_new_pinned (MonoDomain *domain, MonoClass *klass)
 #endif
 }
 
+static void
+obj_creation (MonoObject* o, MonoVTable* vtable)
+{
+    /*
+    printf ("obj_creation 0x%x is created, vtable: %x\n", o, vtable);
+    fflush (NULL);
+    */
+}
+
 /**
  * mono_object_new_specific:
  * @vtable: the vtable of the object that we want to create
@@ -4342,10 +4368,13 @@ mono_object_new_specific (MonoVTable *vtable)
 		pa [0] = mono_type_get_object (mono_domain_get (), &vtable->klass->byval_arg);
 
 		o = mono_runtime_invoke (im, NULL, pa, NULL);		
+        obj_creation(o, vtable);
 		if (o != NULL) return o;
 	}
 
-	return mono_object_new_alloc_specific (vtable);
+	o = mono_object_new_alloc_specific (vtable);
+    obj_creation(o, vtable);
+    return o;
 }
 
 MonoObject *
@@ -4366,6 +4395,7 @@ mono_object_new_alloc_specific (MonoVTable *vtable)
 	
 	if (G_UNLIKELY (profile_allocs))
 		mono_profiler_allocation (o, vtable->klass);
+    obj_creation(o, vtable);
 	return o;
 }
 
@@ -4374,6 +4404,7 @@ mono_object_new_fast (MonoVTable *vtable)
 {
 	MonoObject *o;
 	ALLOC_TYPED (o, vtable->klass->instance_size, vtable);
+    obj_creation(o, vtable);
 	return o;
 }
 
@@ -4398,6 +4429,7 @@ mono_object_new_ptrfree (MonoVTable *vtable)
 		memset ((char*)obj + sizeof (MonoObject), 0, vtable->klass->instance_size - sizeof (MonoObject));
 	}
 #endif
+    obj_creation(obj, vtable);
 	return obj;
 }
 
@@ -4407,6 +4439,7 @@ mono_object_new_ptrfree_box (MonoVTable *vtable)
 	MonoObject *obj;
 	ALLOC_PTRFREE (obj, vtable, vtable->klass->instance_size);
 	/* the object will be boxed right away, no need to memzero it */
+    obj_creation(obj, vtable);
 	return obj;
 }
 
@@ -4506,6 +4539,7 @@ mono_object_clone (MonoObject *obj)
 
 	if (obj->vtable->klass->has_finalize)
 		mono_object_register_finalizer (o);
+    obj_creation(o, obj->vtable);
 	return o;
 }
 
@@ -5038,6 +5072,7 @@ mono_value_box (MonoDomain *domain, MonoClass *class, gpointer value)
 #endif
 	if (class->has_finalize)
 		mono_object_register_finalizer (res);
+    obj_creation(res, vtable);
 	return res;
 }
 
@@ -5085,6 +5120,9 @@ mono_value_copy_array (MonoArray *dest, int dest_idx, gpointer src, int count)
 MonoDomain*
 mono_object_get_domain (MonoObject *obj)
 {
+    if ((int)obj->vtable == 0) {
+		g_assert_not_reached ();
+    }
 	return mono_object_domain (obj);
 }
 
@@ -6509,4 +6547,3 @@ mono_array_addr_with_size (MonoArray *array, int size, uintptr_t idx)
 {
 	return ((char*)(array)->vector) + size * idx;
 }
-

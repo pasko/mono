@@ -8869,6 +8869,20 @@ mono_event_get_flags (MonoEvent *event)
 MonoMethod *
 mono_class_get_method_from_name (MonoClass *klass, const char *name, int param_count)
 {
+    static int invoked = 0;
+	struct timespec req, rem;
+
+    if (!invoked) {
+        printf("in mono_class_get_method_from_name\n");
+        invoked = 1;
+        req.tv_sec = 18;
+        req.tv_nsec = 0;
+        printf("Sleeping 18 sec.\n");
+        fflush(NULL);
+        nanosleep(&req, &rem);
+        printf("exit sleep\n");
+    }
+
 	return mono_class_get_method_from_name_flags (klass, name, param_count, 0);
 }
 
