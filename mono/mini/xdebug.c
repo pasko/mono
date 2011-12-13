@@ -214,7 +214,7 @@ xdebug_end_emit (MonoImageWriter *w, MonoDwarfWriter *dw, MonoMethod *method)
 
 	img_writer_destroy (w);
 
-	if (FALSE) {
+	if (TRUE) {
 		/* Save the symbol files to help debugging */
 		FILE *fp;
 		char *file_name;
@@ -288,7 +288,7 @@ mono_save_xdebug_info (MonoCompile *cfg)
 		 * gdb is not designed to handle 1000s of symbol files (one per method). So we
 		 * group them into groups of 100.
 		 */
-		if ((xdebug_method_count % 100) == 0)
+		/* if ((xdebug_method_count % 100) == 0) */
 			mono_xdebug_flush ();
 
 		xdebug_method_count ++;
